@@ -82,12 +82,16 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     onHistory: () -> Unit = {},
     onNow: () -> Unit = {},
+    onSetLocation: () -> Unit = {},
     workLocation: String = ""
 ) {
     Box(
         modifier = modifier.fillMaxSize()
     ){
-        NowScreen()
+        NowScreen(
+            modifier = modifier,
+            onSetLocation = onSetLocation
+        )
         Row (
             modifier = modifier.align(Alignment.BottomCenter).fillMaxWidth().height(64.dp)
         ) {
@@ -110,7 +114,8 @@ fun MainScreen(
 
 @Composable
 fun NowScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSetLocation: () -> Unit
 ){
     Column(
         modifier = modifier.fillMaxSize().padding(bottom = 64.dp)
@@ -125,6 +130,9 @@ fun NowScreen(
             modifier = modifier.weight(1f),
             horizontalArrangement = Arrangement.Center
         ) {
+            Button(onClick = onSetLocation){
+
+            }
             AddressSearch()
         }
     }
