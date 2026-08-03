@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TimeSheetAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainScreen()
+                    MainScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(modifier: Modifier = Modifier) {
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
