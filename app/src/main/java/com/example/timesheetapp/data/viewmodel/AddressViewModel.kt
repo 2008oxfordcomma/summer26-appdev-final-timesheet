@@ -40,4 +40,11 @@ class AddressViewModel : ViewModel() {
             }
         }
     }
+
+
+    fun clearResults() {
+        _searchResults.value = emptyList()
+        _error.value = null
+    }
 }
+
