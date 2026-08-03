@@ -5,6 +5,7 @@ import android.widget.TextClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,8 +36,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -64,7 +68,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             TimeSheetAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainScreen(modifier = Modifier.padding(innerPadding))
+                    MainScreen(
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
@@ -72,36 +78,29 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen(modifier: Modifier = Modifier) {
+fun MainScreen(
+    modifier: Modifier = Modifier,
+    onHistory: () -> Unit = {},
+    onNow: () -> Unit = {},
+    workLocation: String = ""
+) {
     Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(bottom = 64.dp)
-        ) {
-            Row( modifier = Modifier.weight(1f)) {
-                DisplayTextClock()
-            }
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                AddressSearch()
-            }
-        }
+        modifier = modifier.fillMaxSize()
+    ){
+        NowScreen()
         Row (
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(64.dp)
+            modifier = modifier.align(Alignment.BottomCenter).fillMaxWidth().height(64.dp)
         ) {
             Button(
-                onClick = {},
-                modifier = Modifier.weight(1f).padding(end = 2.dp).fillMaxHeight(),
+                onClick = onNow,
+                modifier = modifier.weight(1f).padding(end = 2.dp).fillMaxHeight(),
                 shape = RectangleShape
                 ) {
                 Text("Now")
             }
             Button(
-                onClick = {},
-                modifier = Modifier.weight(1f).padding(start = 2.dp).fillMaxHeight(),
+                onClick = onHistory,
+                modifier = modifier.weight(1f).padding(start = 2.dp).fillMaxHeight(),
                 shape = RectangleShape) {
                 Text("History")
             }
@@ -109,6 +108,27 @@ fun MainScreen(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun NowScreen(
+    modifier: Modifier = Modifier
+){
+    Column(
+        modifier = modifier.fillMaxSize().padding(bottom = 64.dp)
+    ) {
+        Row( modifier = modifier.weight(1f)) {
+            DisplayTextClock()
+        }
+        Row( modifier = modifier.weight(1f)) {
+            ClockInStatus(modifier = modifier)
+        }
+        Row(
+            modifier = modifier.weight(1f),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            AddressSearch()
+        }
+    }
+}
 @Composable
 fun DisplayTextClock() {
     Column(
@@ -124,6 +144,40 @@ fun DisplayTextClock() {
                 }
             },
             modifier = Modifier.padding(5.dp),
+        )
+    }
+}
+
+@Composable
+fun ClockInStatus(
+    modifier: Modifier = Modifier,
+    isWorking: Boolean = false,
+    startTime: String = "test"
+){
+    Column(modifier = modifier) {
+        var statusMessage: String = ""
+        val bgColor: Color
+
+        if (isWorking) {
+            statusMessage = "Clocked In"
+            bgColor = Color.Green
+        } else {
+            statusMessage = "Clocked Out"
+            bgColor = Color.Red
+        }
+//        Tells you the clockin time
+        Text(
+            modifier = modifier.padding(10.dp),
+            text = startTime,
+            fontSize = 6.em
+        )
+
+        Text(
+            modifier = modifier.background(bgColor).fillMaxWidth(),
+            text = statusMessage,
+            color = Color.Black,
+            fontSize = 9.em,
+            textAlign = TextAlign.Center
         )
     }
 }
