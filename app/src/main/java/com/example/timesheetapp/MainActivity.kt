@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -41,6 +43,7 @@ import com.example.timesheetapp.data.viewmodel.AddressViewModel
 import com.example.timesheetapp.ui.theme.TimeSheetAppTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 
 class MainActivity : ComponentActivity() {
@@ -128,38 +131,80 @@ fun AddressSearch() {
     var text by remember { mutableStateOf("") }
     var debounceJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
-    Column {
+    var selectedLocation by remember {mutableStateOf<Pair<String, String>?>(null)}
+    var showDropdown by remember {mutableStateOf(false)}
+
+    Column (modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        selectedLocation?.let { (lat, lon) ->
+            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Selected Location:",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Latitude: $lat",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Longitude: $lon",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+
         TextField(
             value = text,
             onValueChange = { newText ->
                 text = newText
+                showDropdown = newText.length > 3
                 debounceJob?.cancel()
                 debounceJob = viewModel.viewModelScope.launch {
                     // we have to keep this a 1 sec since that's what Nominatim's usage policy is
-                    delay(1000)
+                    delay(1000.milliseconds)
                     if (newText.length > 3) { // i didn't want to start a query after just typing one letter so it's just an arbitrary 3 characters
                         viewModel.searchAddress(newText)
                     }
                 }
             },
-            placeholder = { Text("Enter address") }
+            placeholder = { Text("Enter address") },
+            modifier = Modifier.fillMaxWidth()
         )
 
-        LazyColumn {
-            items(results) { place ->
-                Text(
-                    text = place.display_name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val latitude = place.lat.toDouble()
-                            val longitude = place.lon.toDouble()
-                            // I was trying to get this to print to the console when clicked, but it's not working
-                            println("$latitude, $longitude")
-                        }
-                        .padding(16.dp)
-                    )
+        if (showDropdown && results.isNotEmpty()) {
+            Card(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                LazyColumn {
+                    items(results) { place ->
+                        Text(
+                            text = place.display_name,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                    text = place.display_name
+
+                                    val latitude = place.lat.toDouble()
+                                    val longitude = place.lon.toDouble()
+                                    selectedLocation = Pair(
+                                        String.format("%.6f", latitude),
+                                        String.format("%.6f", longitude)
+                                    )
+                                    // I was trying to get this to print to the console when clicked, but it's not working
+                                    println("$latitude, $longitude")
+                                    showDropdown = false
+                                    viewModel.clearResults()
+                                }
+                                .padding(16.dp)
+                        )
+                    }
+                }
             }
+        }
+        if (showDropdown && results.isEmpty() && text.length > 3) {
+            Text(
+                text = "No results found",
+                modifier = Modifier.padding(8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = androidx.compose.ui.graphics.Color.Gray
+            )
         }
     }
 }
