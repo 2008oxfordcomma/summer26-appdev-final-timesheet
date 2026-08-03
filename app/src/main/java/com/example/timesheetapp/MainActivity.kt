@@ -43,6 +43,7 @@ import com.example.timesheetapp.data.viewmodel.AddressViewModel
 import com.example.timesheetapp.ui.theme.TimeSheetAppTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
 
@@ -184,8 +185,8 @@ fun AddressSearch() {
                                     val latitude = place.lat.toDouble()
                                     val longitude = place.lon.toDouble()
                                     selectedLocation = Pair(
-                                        String.format("%.6f", latitude),
-                                        String.format("%.6f", longitude)
+                                        String.format(Locale.US, "%.6f", latitude),
+                                        String.format(Locale.US, "%.6f", longitude)
                                     )
                                     // I was trying to get this to print to the console when clicked, but it's not working
                                     println("$latitude, $longitude")
