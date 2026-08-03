@@ -1,5 +1,6 @@
 package com.example.timesheetapp 
 
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.TextClock
 import androidx.activity.ComponentActivity
@@ -45,7 +46,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
-
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import android.Manifest
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.em
 
 class MainActivity : ComponentActivity() {
 
@@ -60,47 +68,79 @@ class MainActivity : ComponentActivity() {
         setContent {
             TimeSheetAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainScreen()
+                    MainScreen(
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
+            }
+        }
+    }
+
+    // amalgamation of Reso Coder, Dr. Parag Shukla, and Kotlin with Compose youtube videos
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+}
+
+@Composable
+fun MainScreen(
+    modifier: Modifier = Modifier,
+    onHistory: () -> Unit = {},
+    onNow: () -> Unit = {},
+    onSetLocation: () -> Unit = {},
+    workLocation: String = ""
+) {
+    Box(
+        modifier = modifier.fillMaxSize()
+    ){
+        NowScreen(
+            modifier = modifier,
+            onSetLocation = onSetLocation
+        )
+        Row (
+            modifier = modifier.align(Alignment.BottomCenter).fillMaxWidth().height(64.dp)
+        ) {
+            Button(
+                onClick = onNow,
+                modifier = modifier.weight(1f).padding(end = 2.dp).fillMaxHeight(),
+                shape = RectangleShape
+            ) {
+                Text("Now")
+            }
+            Button(
+                onClick = onHistory,
+                modifier = modifier.weight(1f).padding(start = 2.dp).fillMaxHeight(),
+                shape = RectangleShape) {
+                Text("History")
             }
         }
     }
 }
 
 @Composable
-fun MainScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize()
+fun NowScreen(
+    modifier: Modifier = Modifier,
+    onSetLocation: () -> Unit
+){
+    Column(
+        modifier = modifier.fillMaxSize().padding(bottom = 64.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(bottom = 64.dp)
-        ) {
-            Row( modifier = Modifier.weight(1f)) {
-                DisplayTextClock()
-            }
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                AddressSearch()
-            }
+        Row( modifier = modifier.weight(1f)) {
+            DisplayTextClock()
         }
-        Row (
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(64.dp)
+        Row( modifier = modifier.weight(1f)) {
+            ClockInStatus(modifier = modifier)
+        }
+        Row(
+            modifier = modifier.weight(1f),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Button(
-                onClick = {},
-                modifier = Modifier.weight(1f).padding(end = 2.dp).fillMaxHeight(),
-                shape = RectangleShape
-                ) {
-                Text("Now")
-            }
-            Button(
-                onClick = {},
-                modifier = Modifier.weight(1f).padding(start = 2.dp).fillMaxHeight(),
-                shape = RectangleShape) {
-                Text("History")
-            }
+            AddressSearch()
         }
     }
 }
@@ -125,8 +165,43 @@ fun DisplayTextClock() {
 }
 
 @Composable
+fun ClockInStatus(
+    modifier: Modifier = Modifier,
+    isWorking: Boolean = false,
+    startTime: String = "test"
+){
+    Column(modifier = modifier) {
+        var statusMessage: String = ""
+        val bgColor: Color
+
+        if (isWorking) {
+            statusMessage = "Clocked In"
+            bgColor = Color.Green
+        } else {
+            statusMessage = "Clocked Out"
+            bgColor = Color.Red
+        }
+//        Tells you the clockin time
+        Text(
+            modifier = modifier.padding(10.dp),
+            text = startTime,
+            fontSize = 6.em
+        )
+
+        Text(
+            modifier = modifier.background(bgColor).fillMaxWidth(),
+            text = statusMessage,
+            color = Color.Black,
+            fontSize = 9.em,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
 fun AddressSearch() {
     val viewModel: AddressViewModel = viewModel()
+    val context = LocalContext.current
     val results by viewModel.searchResults.collectAsState()
 
     var text by remember { mutableStateOf("") }
@@ -155,24 +230,63 @@ fun AddressSearch() {
             }
         }
 
-        TextField(
-            value = text,
-            onValueChange = { newText ->
-                text = newText
-                showDropdown = newText.length > 3
-                debounceJob?.cancel()
-                debounceJob = viewModel.viewModelScope.launch {
-                    // we have to keep this a 1 sec since that's what Nominatim's usage policy is
-                    delay(1000.milliseconds)
-                    if (newText.length > 3) { // i didn't want to start a query after just typing one letter so it's just an arbitrary 3 characters
-                        viewModel.searchAddress(newText)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(
+                onClick = {
+                    // this if statement comes from an amalgamation of the channels Reso Coder, Dr. Parag Shukla, and Kotlin with Compose youtube videos
+                    if (ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        (context as? ComponentActivity)?.let { activity ->
+                            ActivityCompat.requestPermissions(
+                                activity,
+                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                                1001
+                            )
+                        }
+                    } else {
+                        viewModel.getCurrentLocation { latitude, longitude ->
+                            selectedLocation = Pair(
+                                String.format(Locale.US, "%.6f", latitude),
+                                String.format(Locale.US, "%.6f", longitude)
+                            )
+                            text = "Current Location"
+                            showDropdown = false
+                            viewModel.clearResults()
+                        }
                     }
-                }
-            },
-            placeholder = { Text("Enter address") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
+                },
+                modifier = Modifier
+                    .height(56.dp)
+                    .padding(top = 0.dp)
+            ) {
+                // i need to get an image put into the button
+                Text("Current")
+            }
+            TextField(
+                value = text,
+                onValueChange = { newText ->
+                    text = newText
+                    showDropdown = newText.length > 3
+                    debounceJob?.cancel()
+                    debounceJob = viewModel.viewModelScope.launch {
+                        // we have to keep this a 1 sec since that's what Nominatim's usage policy is
+                        delay(1000.milliseconds)
+                        if (newText.length > 3) { // i didn't want to start a query after just typing one letter so it's just an arbitrary 3 characters
+                            viewModel.searchAddress(newText)
+                        }
+                    }
+                },
+                placeholder = { Text("Enter address") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
         if (showDropdown && results.isNotEmpty()) {
             Card(modifier = Modifier.fillMaxWidth().height(200.dp)) {
                 LazyColumn {
@@ -204,7 +318,7 @@ fun AddressSearch() {
                 text = "No results found",
                 modifier = Modifier.padding(8.dp),
                 style = MaterialTheme.typography.bodyMedium,
-                color = androidx.compose.ui.graphics.Color.Gray
+                color = Color.Gray
             )
         }
     }
