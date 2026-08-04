@@ -1,4 +1,4 @@
-package com.example.timesheetapp 
+package com.example.timesheetapp
 
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -57,7 +57,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.ui.draw.scale
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -103,27 +103,42 @@ fun MainScreen(
     onSetLocation: () -> Unit = {},
     workLocation: String = ""
 ) {
+
+    var showHistory by remember {mutableStateOf(false)}
     Box(
         modifier = modifier.fillMaxSize()
     ){
-//        HistoryScreen()
-        NowScreen(
-            modifier = modifier,
-            onSetLocation = onSetLocation
-        )
+        if (showHistory) {
+            HistoryScreen(modifier = modifier)
+        } else {
+            NowScreen(
+                modifier = modifier,
+                onSetLocation = onSetLocation
+            )
+        }
+
         Row (
-            modifier = modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.15f)
+            modifier = modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(0.15f)
         ) {
             Button(
-                onClick = onNow,
-                modifier = modifier.weight(1f).padding(end = 2.dp).fillMaxHeight(),
+                onClick = { showHistory = false },
+                modifier = modifier
+                    .weight(1f)
+                    .padding(end = 2.dp)
+                    .fillMaxHeight(),
                 shape = RectangleShape
             ) {
                 Text("Now")
             }
             Button(
-                onClick = onHistory,
-                modifier = modifier.weight(1f).padding(start = 2.dp).fillMaxHeight(),
+                onClick = { showHistory = true },
+                modifier = modifier
+                    .weight(1f)
+                    .padding(start = 2.dp)
+                    .fillMaxHeight(),
                 shape = RectangleShape) {
                 Text("History")
             }
@@ -172,21 +187,33 @@ fun HistoryCard(
     isHeader: Boolean = true,
     onDel: () -> Unit = {}
 ){
-    Row(modifier = modifier.height(60.dp).background(color = Color.Yellow)){
-       val fontSize = 6.5.em
+    Row(modifier = modifier
+        .height(60.dp)
+        .background(color = Color.Yellow)){
+        val fontSize = 4.em
         Row(
-            modifier = modifier.fillMaxWidth(0.9f).background(color = Color.Red)
+            modifier = modifier
+                .fillMaxWidth(0.9f)
+                .background(color = Color.Red)
         ){
-            Column(modifier = modifier.weight(1.0f).fillMaxHeight()) {
+            Column(modifier = modifier
+                .weight(1.0f)
+                .fillMaxHeight()) {
                 Text(modifier = modifier, text = dateText, fontSize = fontSize)
             }
-            Column(modifier = modifier.weight(1.0f).fillMaxHeight()) {
+            Column(modifier = modifier
+                .weight(1.0f)
+                .fillMaxHeight()) {
                 Text(modifier = modifier, text = clockInText, fontSize = fontSize)
             }
-            Column(modifier = modifier.weight(1.0f).fillMaxHeight()) {
+            Column(modifier = modifier
+                .weight(1.0f)
+                .fillMaxHeight()) {
                 Text(modifier = modifier, text = clockOutText, fontSize = fontSize)
             }
-            Column(modifier = modifier.weight(1.0f).fillMaxHeight()) {
+            Column(modifier = modifier
+                .weight(1.0f)
+                .fillMaxHeight()) {
                 Text(modifier = modifier, text = totalText, fontSize = fontSize)
             }
         }
@@ -201,14 +228,24 @@ fun NowScreen(
     modifier: Modifier = Modifier,
     onSetLocation: () -> Unit
 ){
+    val nowViewModel: NowViewModel = viewModel()
+    val isClockedIn by nowViewModel.isClockedIn.collectAsState()
+    val clockInTime by nowViewModel.clockInTime.collectAsState()
+
     Column(
-        modifier = modifier.fillMaxSize().padding(bottom = 64.dp)
+        modifier = modifier
+            .fillMaxSize()
+            .padding(bottom = 64.dp)
     ) {
         Row( modifier = modifier.weight(1f)) {
             DisplayTextClock()
         }
         Row( modifier = modifier.weight(1f)) {
-            ClockInStatus(modifier = modifier)
+            ClockInStatus(
+                modifier = modifier,
+                isWorking = isClockedIn,
+                startTime = if(isClockedIn) "Clocked in at: $clockInTime" else "Clocked Out"
+            )
         }
         Row(
             modifier = modifier.weight(1.5f),
@@ -242,35 +279,63 @@ fun DisplayTextClock() {
 fun ClockInStatus(
     modifier: Modifier = Modifier,
     isWorking: Boolean = false,
-    startTime: String = "test"
+    startTime: String = "Not clocked in"
 ){
     Column(modifier = modifier) {
-        var statusMessage: String = ""
+        var statusMessage: String
         val bgColor: Color
+        val statusText: String
 
         if (isWorking) {
             statusMessage = "Clocked In"
             bgColor = Color.Green
+            statusText = "You are at work"
         } else {
             statusMessage = "Clocked Out"
             bgColor = Color.Red
+            statusText = "You are not at work"
         }
 //        Tells you the clockin time
-        Row(modifier = modifier){
+        Column(
+            modifier = modifier
+                .background(bgColor)
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
             Text(
-                modifier = modifier.padding(10.dp),
-                text = "Status:",
-                fontSize = 5.em
-            )
-
-            Text(
-                modifier = modifier.background(bgColor).fillMaxWidth(),
                 text = statusMessage,
                 color = Color.Black,
                 fontSize = 9.em,
                 textAlign = TextAlign.Center
             )
+            Text(
+                text = startTime,
+                color = Color.Black,
+                fontSize = 3.em,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = statusText,
+                color = Color.Black,
+                fontSize = 4.em,
+                textAlign = TextAlign.Center
+            )
         }
+//        Row(modifier = modifier){
+//            Text(
+//                modifier = modifier.padding(10.dp),
+//                text = "Status:",
+//                fontSize = 5.em
+//            )
+//
+//            Text(
+//                modifier = modifier.background(bgColor).fillMaxWidth(),
+//                text = statusMessage,
+//                color = Color.Black,
+//                fontSize = 9.em,
+//                textAlign = TextAlign.Center
+//            )
+//        }
     }
 }
 
@@ -280,8 +345,14 @@ fun AddressSearch(
     @DrawableRes leadingIcon: Int,
 ) {
     val viewModel: AddressViewModel = viewModel()
+    val nowViewModel: NowViewModel = viewModel()
     val context = LocalContext.current
     val results by viewModel.searchResults.collectAsState()
+    val isNearLocation by viewModel.isNearLocation.collectAsState()
+
+    LaunchedEffect(isNearLocation) {
+        nowViewModel.updateLocationStatus(isNearLocation)
+    }
 
     var text by remember { mutableStateOf("") }
     var debounceJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
@@ -289,11 +360,17 @@ fun AddressSearch(
     var selectedLocation by remember {mutableStateOf<Pair<String, String>?>(null)}
     var showDropdown by remember {mutableStateOf(false)}
 
-    Column (modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column (modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp)) {
         selectedLocation?.let { (lat, lon) ->
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            Card(modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)) {
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp).fillMaxWidth(),
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                        .fillMaxWidth(),
 
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -338,6 +415,7 @@ fun AddressSearch(
                                 String.format(Locale.US, "%.6f", latitude),
                                 String.format(Locale.US, "%.6f", longitude)
                             )
+                            viewModel.setSelectedLocation(latitude, longitude)
                             text = "Current Location"
                             showDropdown = false
                             viewModel.clearResults()
@@ -384,14 +462,18 @@ fun AddressSearch(
                 Text("X", textAlign = TextAlign.Center)
             }
         }
-        
+
         if (showDropdown && results.isNotEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+            Card(modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)) {
                 LazyColumn {
                     items(results) { place ->
                         Text(
                             text = place.display_name,
-                            modifier = Modifier.fillMaxWidth().clickable {
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
                                     text = place.display_name
 
                                     val latitude = place.lat.toDouble()
@@ -400,6 +482,7 @@ fun AddressSearch(
                                         String.format(Locale.US, "%.6f", latitude),
                                         String.format(Locale.US, "%.6f", longitude)
                                     )
+                                    viewModel.setSelectedLocation(latitude, longitude)
                                     // I was trying to get this to print to the console when clicked, but it's not working
                                     println("$latitude, $longitude")
                                     showDropdown = false
