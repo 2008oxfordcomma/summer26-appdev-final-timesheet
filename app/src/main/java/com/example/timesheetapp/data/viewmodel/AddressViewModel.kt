@@ -17,6 +17,8 @@ import android.content.pm.PackageManager
 import android.location.Location
 import androidx.lifecycle.AndroidViewModel
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 class AddressViewModel(application: android.app.Application) : AndroidViewModel(application) {
 
@@ -28,6 +30,16 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    private val _isNearLocation = MutableStateFlow(false)
+    val isNearLocation: StateFlow<Boolean> = _isNearLocation
+
+    private val _currentLocation = MutableStateFlow<Pair<Double, Double>?>(null)
+    val currentLocation: StateFlow<Pair<Double, Double>?> = _currentLocation
+
+    private var selectedLatitude: Double? = null
+    private var selectedLongitude: Double? = null
+    private var isPolling = false
 
     private val context: Context = application
 
@@ -51,10 +63,66 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
         }
     }
 
-
     fun clearResults() {
         _searchResults.value = emptyList()
         _error.value = null
+    }
+
+    fun setSelectedLocation(latitude: Double, longitude: Double) {
+        selectedLatitude = latitude
+        selectedLongitude = longitude
+        _isNearLocation.value = false
+        startLocationPolling()
+    }
+
+    fun clearSelectedLocation() {
+        selectedLatitude = null
+        selectedLongitude = null
+        _isNearLocation.value = false
+        isPolling = false
+    }
+
+    // for future reference https://www.youtube.com/watch?v=qZBKoBew010
+    private fun startLocationPolling() {
+        if (isPolling) return
+        isPolling = true
+
+        viewModelScope.launch {
+            while (isPolling) {
+                if (ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    getCurrentLocation { latitude, longitude ->
+                        _currentLocation.value = Pair(latitude, longitude)
+                        checkIfNearLocation(latitude, longitude)
+                    }
+                }
+                delay(60000) // 1 minute
+            }
+        }
+    }
+
+    private fun checkIfNearLocation(currentLatitude: Double, currentLongitude: Double) {
+        val targetLatitude = selectedLatitude ?: return
+        val targetLongitude = selectedLongitude ?: return
+
+        val threshold = 0.001
+        val latitudeDifference = abs(currentLatitude - targetLatitude)
+        val longitudeDifference = abs(currentLongitude - targetLongitude)
+
+        val isNear = latitudeDifference < threshold && longitudeDifference < threshold
+        _isNearLocation.value = isNear
+    }
+
+    fun stopPolling() {
+        isPolling = false
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopPolling()
     }
 
     // amalgamation of Reso Coder, Dr. Parag Shukla, and Kotlin with Compose youtube videos
