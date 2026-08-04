@@ -7,7 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+//import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,10 +50,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.Manifest
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.em
 
@@ -100,12 +106,13 @@ fun MainScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ){
+//        HistoryScreen()
         NowScreen(
             modifier = modifier,
             onSetLocation = onSetLocation
         )
         Row (
-            modifier = modifier.align(Alignment.BottomCenter).fillMaxWidth().height(64.dp)
+            modifier = modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.15f)
         ) {
             Button(
                 onClick = onNow,
@@ -125,6 +132,71 @@ fun MainScreen(
 }
 
 @Composable
+fun HistoryScreen(
+    modifier: Modifier = Modifier,
+    histVM: HistoryLogViewModel = viewModel()
+) {
+    LazyColumn(modifier = modifier
+        .fillMaxSize()
+        .background(color = Color.Cyan)
+    ) {
+        item{
+            HistoryCard()
+        }
+        val histData = histVM.getLog()
+        for(work in histData){
+            item{
+                HistoryCard(
+                    modifier = modifier,
+                    dateText = work.date.toString(),
+                    clockInText = (work.clockIn.hour.toString() + ":" + work.clockIn.minute.toString()),
+                    clockOutText = (work.clockOut.hour.toString() + ":" + work.clockOut.minute.toString()),
+                    totalText = work.total.toString(),
+                    delTxt = "x",
+                    isHeader = false,
+                    onDel = { histVM.remove(work) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HistoryCard(
+    modifier: Modifier = Modifier,
+    dateText: String = "Date",
+    clockInText:String = "In",
+    clockOutText:String = "Out",
+    totalText:String = "Total",
+    delTxt:String = "",
+    isHeader: Boolean = true,
+    onDel: () -> Unit = {}
+){
+    Row(modifier = modifier.height(60.dp).background(color = Color.Yellow)){
+       val fontSize = 6.5.em
+        Row(
+            modifier = modifier.fillMaxWidth(0.9f).background(color = Color.Red)
+        ){
+            Column(modifier = modifier.weight(1.0f).fillMaxHeight()) {
+                Text(modifier = modifier, text = dateText, fontSize = fontSize)
+            }
+            Column(modifier = modifier.weight(1.0f).fillMaxHeight()) {
+                Text(modifier = modifier, text = clockInText, fontSize = fontSize)
+            }
+            Column(modifier = modifier.weight(1.0f).fillMaxHeight()) {
+                Text(modifier = modifier, text = clockOutText, fontSize = fontSize)
+            }
+            Column(modifier = modifier.weight(1.0f).fillMaxHeight()) {
+                Text(modifier = modifier, text = totalText, fontSize = fontSize)
+            }
+        }
+        Button(modifier = modifier, onClick = onDel, enabled = !isHeader){
+            Text(modifier = modifier, text =  delTxt, fontSize = fontSize)
+        }
+    }
+}
+
+@Composable
 fun NowScreen(
     modifier: Modifier = Modifier,
     onSetLocation: () -> Unit
@@ -138,18 +210,11 @@ fun NowScreen(
         Row( modifier = modifier.weight(1f)) {
             ClockInStatus(modifier = modifier)
         }
-        Row (
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text("Select Work Location", style = MaterialTheme.typography.titleLarge)
-        }
         Row(
             modifier = modifier.weight(1.5f),
             horizontalArrangement = Arrangement.Center
         ) {
-
-            AddressSearch()
+            AddressSearch(modifier = modifier, R.drawable.search)
         }
     }
 }
@@ -191,24 +256,29 @@ fun ClockInStatus(
             bgColor = Color.Red
         }
 //        Tells you the clockin time
-        Text(
-            modifier = modifier.padding(10.dp),
-            text = startTime,
-            fontSize = 6.em
-        )
+        Row(modifier = modifier){
+            Text(
+                modifier = modifier.padding(10.dp),
+                text = "Status:",
+                fontSize = 5.em
+            )
 
-        Text(
-            modifier = modifier.background(bgColor).fillMaxWidth(),
-            text = statusMessage,
-            color = Color.Black,
-            fontSize = 9.em,
-            textAlign = TextAlign.Center
-        )
+            Text(
+                modifier = modifier.background(bgColor).fillMaxWidth(),
+                text = statusMessage,
+                color = Color.Black,
+                fontSize = 9.em,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
 @Composable
-fun AddressSearch() {
+fun AddressSearch(
+    modifier: Modifier = Modifier,
+    @DrawableRes leadingIcon: Int,
+) {
     val viewModel: AddressViewModel = viewModel()
     val context = LocalContext.current
     val results by viewModel.searchResults.collectAsState()
@@ -296,8 +366,10 @@ fun AddressSearch() {
                     }
                 },
                 placeholder = { Text("Enter address") },
-                modifier = Modifier.weight(1f)
-            )
+                modifier = Modifier.weight(1f),
+                leadingIcon = { Icon(modifier = Modifier.size(16.dp), painter = painterResource(id = leadingIcon), contentDescription = null) },
+
+                )
             OutlinedButton(
                 onClick = {
                     selectedLocation = null

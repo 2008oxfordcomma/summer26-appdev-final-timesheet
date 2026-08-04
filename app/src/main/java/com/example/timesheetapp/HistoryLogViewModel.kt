@@ -1,9 +1,11 @@
 package com.example.timesheetapp
 
+import android.app.Application
 import android.util.JsonWriter
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import java.time.LocalDate
 import java.time.LocalTime
@@ -15,19 +17,24 @@ import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 
 
-class HistoryLogViewModel: ViewModel() {
+class HistoryLogViewModel(app: Application): AndroidViewModel(app) {
 
-    private val file: File = File("log.bin")
+    private val file: File = File(app.filesDir,"log.bin")
     private var historyLog by mutableStateOf<MutableList<Work>>(mutableListOf<Work>())
 
     init{
         if(file.exists()){
-            val fileIn: FileInputStream = FileInputStream(file)
-            val objStreamIn = ObjectInputStream(fileIn)
-
-            historyLog = objStreamIn.readObject() as MutableList<Work>
-            objStreamIn.close()
-            fileIn.close()
+            val fileIn: FileInputStream
+            val objStreamIn: ObjectInputStream
+            try{
+                fileIn = FileInputStream(file)
+                objStreamIn = ObjectInputStream(fileIn)
+                historyLog = objStreamIn.readObject() as MutableList<Work>
+                objStreamIn.close()
+                fileIn.close()
+            } catch(EOF: java.io.EOFException){
+                println("No history data has been saved")
+            }
 
             println(historyLog)
         } else {
@@ -42,8 +49,8 @@ class HistoryLogViewModel: ViewModel() {
         saveLog()
     }
 
-    fun removeAt(index: Int){
-        historyLog.removeAt(index)
+    fun remove(work: Work){
+        historyLog.remove(work)
         saveLog()
     }
 
@@ -60,10 +67,10 @@ class HistoryLogViewModel: ViewModel() {
     fun getLog(): List<Work> {
         val backLogDate = LocalDate.now().minusDays(14)
         val returnList = mutableListOf<Work>()
-        val indx: Int = historyLog.size
-        while(backLogDate.isBefore(historyLog[indx].date) || backLogDate.isEqual(historyLog[indx].date)){
+        var indx: Int = historyLog.size-1
+        while(indx > 0 && (backLogDate.isBefore(historyLog[indx].date) || backLogDate.isEqual(historyLog[indx].date))){
             returnList.add(historyLog[indx])
-            indx.minus(-1)
+            indx--
         }
 
         return returnList.toList()
