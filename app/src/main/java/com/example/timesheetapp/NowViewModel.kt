@@ -1,57 +1,81 @@
 package com.example.timesheetapp
 
 import android.app.Application
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.time.LocalTime
 
 class NowViewModel(app: Application): AndroidViewModel(app) {
-    //    TODO private member variables
-    private val _isClockedIn = MutableStateFlow(false)
-    private val _clockInTime = MutableStateFlow<String?>(null)
-    private val _clockOutTime = MutableStateFlow<String?>(null)
+
+    var isClockedIn by mutableStateOf(false)
+        private set
+    var clockInTime by mutableStateOf<LocalTime?>(null)
+        private set
+    var location by mutableStateOf(Pair(0.0, 0.0))
+        private set
     private val historyViewModel = HistoryLogViewModel(app)
-    private var currentWork: Work? = null
-
-    val isClockedIn: StateFlow<Boolean> = _isClockedIn
-    val clockInTime: StateFlow<String?> = _clockInTime
-    val clockOutTime: StateFlow<String?> = _clockOutTime
+    private val isClockInF: File = File(app.filesDir,"isClockedIn.bin")
+    private val clockInF: File = File(app.filesDir,"clockedIn.bin")
+    private val locationF: File = File(app.filesDir,"locationF.bin")
 
 
+    init{
+        val isClockData = pullData(isClockInF)
+        val clockInData = pullData(clockInF)
+        val locationData = pullData((locationF))
+        if(isClockData !is Unit){
+            isClockedIn = isClockData as Boolean
+        }
+        if(clockInData !is Unit){
+            clockInTime = clockInData as? LocalTime
+        }
+        if(locationData !is Unit){
+            location = pullData(locationF) as Pair<Double, Double>
+        }
+    }
 
-    //    TODO init block that initalize seriablize data to store
 
-    //    TODO functions that change private member variables
+    fun pullData(file: File): Any{
+        if(file.exists()){
+            val fileIn: FileInputStream
+            val objStreamIn: ObjectInputStream
+            try{
+                fileIn = FileInputStream(file)
+                objStreamIn = ObjectInputStream(fileIn)
+                return objStreamIn.readObject()
+            } catch(EOF: java.io.EOFException){
+                Log.e(this.toString(),  "Error in loading file: ${file.name}")
+            }
+        } else {
+            file.createNewFile()
+            Log.d(this.toString(), "Creating in new file: ${file.name}")
+        }
+
+        return Unit
+    }
+
     fun updateLocationStatus(isNear: Boolean) {
-        if (isNear && !_isClockedIn.value) clockIn()
-        else if (!isNear && _isClockedIn.value) clockOut()
+        if (isNear && !isClockedIn) clockIn()
+        else if (!isNear && isClockedIn) clockOut()
     }
 
     private fun clockIn() {
-        val currentTime = LocalTime.now()
-        _isClockedIn.value = true
-        _clockInTime.value = currentTime.toString()
-
-        currentWork = Work(clockIn = currentTime)
-        historyViewModel.add(clockIn = currentTime)
+        isClockedIn = true
+        clockInTime = LocalTime.now()
     }
 
     private fun clockOut() {
-        val currentTime = LocalTime.now()
-        _isClockedIn.value = false
-        _clockOutTime.value = currentTime.toString()
-
-        currentWork?.let { work ->
-            val updatedWork = Work(
-                date = work.date,
-                clockIn = work.clockIn,
-                clockOut = currentTime
-            )
-            historyViewModel.remove(work)
-            historyViewModel.add(clockIn = work.clockIn, newWork = updatedWork)
-            currentWork = null
-        }
+        isClockedIn = false
+        val clocked = clockInTime ?: throw Error("TRIED CLOCKING OUT WHILE NEVER CLOCKED IN!!!")
+        historyViewModel.add(clocked)
     }
 
     fun getHistory(): List<Work> {

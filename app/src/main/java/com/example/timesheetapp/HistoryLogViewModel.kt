@@ -1,26 +1,24 @@
 package com.example.timesheetapp
 
 import android.app.Application
-import android.util.JsonWriter
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import java.time.LocalDate
-import java.time.LocalTime
-import kotlinx.serialization.*
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+import java.time.LocalTime
 
 
 class HistoryLogViewModel(app: Application): AndroidViewModel(app) {
 
     private val file: File = File(app.filesDir,"log.bin")
-    private var historyLog by mutableStateOf<MutableList<Work>>(mutableListOf<Work>())
+//    TODO fix this by not reassigning it
+    var historyLog by mutableStateOf<MutableList<Work>>(mutableListOf<Work>())
 
     init{
         if(file.exists()){

@@ -2,7 +2,6 @@ package com.example.timesheetapp.data.viewmodel
 
 import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.timesheetapp.data.model.AddressResult
 import com.example.timesheetapp.data.remote.NominatimClient
@@ -15,9 +14,17 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.delay
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import kotlin.math.abs
 
 class AddressViewModel(application: android.app.Application) : AndroidViewModel(application) {
@@ -35,13 +42,36 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
     val isNearLocation: StateFlow<Boolean> = _isNearLocation
 
     private val _currentLocation = MutableStateFlow<Pair<Double, Double>?>(null)
-    val currentLocation: StateFlow<Pair<Double, Double>?> = _currentLocation
-
+    var workLocation by mutableStateOf(Pair(0.0, 0.0))
+    var selectedLocation by mutableStateOf<Pair<String, String>?>(null)
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
     private var isPolling = false
+    private val workLocationF: File = File(application.filesDir,"locationF.bin")
 
     private val context: Context = application
+
+    init{
+        if(workLocationF.exists()){
+            val fileIn: FileInputStream
+            val objStreamIn: ObjectInputStream
+            try{
+                fileIn = FileInputStream(workLocationF)
+                objStreamIn = ObjectInputStream(fileIn)
+                workLocation = objStreamIn.readObject() as Pair<Double, Double>
+                fileIn.close()
+                objStreamIn.close()
+
+            } catch(EOF: java.io.EOFException){
+                Log.e(this.toString(),  "Error in loading file: ${workLocationF.name}\n${EOF.toString()}")
+            }
+        } else {
+            workLocationF.createNewFile()
+            Log.d(this.toString(), "Creating in new file: ${workLocationF.name}")
+        }
+
+        Log.d(this.toString(), "Opening File ${workLocationF.name}. Saved Contents: ${workLocation.first},${workLocation.second}")
+    }
 
     fun searchAddress(query: String) {
         viewModelScope.launch {
@@ -63,6 +93,16 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
         }
     }
 
+    fun updateWorkLocation(){
+        val fileOut: FileOutputStream = FileOutputStream(workLocationF)
+        val objStreamOut: ObjectOutputStream = ObjectOutputStream(fileOut)
+        getCurrentLocation()
+        objStreamOut.writeObject(workLocation)
+
+        fileOut.close()
+        objStreamOut.close()
+        Log.d(this.toString(), "Saving Work Location, Lat: ${workLocation.first} Long: ${workLocation.second}")
+    }
     fun clearResults() {
         _searchResults.value = emptyList()
         _error.value = null
@@ -125,6 +165,10 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
         stopPolling()
     }
 
+    private fun getCurrentLocation(){
+        getCurrentLocation(onLocationResult = {a: Double, b: Double -> {}})
+    }
+
     // amalgamation of Reso Coder, Dr. Parag Shukla, and Kotlin with Compose youtube videos
     fun getCurrentLocation(onLocationResult: (Double, Double) -> Unit) {
         if (ContextCompat.checkSelfPermission(
@@ -143,6 +187,7 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
             if (location != null) {
                 val latitude = location.latitude
                 val longitude = location.longitude
+                this.workLocation = Pair(latitude, longitude)
                 Log.d("AddressViewModel", "Location: $latitude, $longitude")
                 onLocationResult(latitude, longitude)
             } else {

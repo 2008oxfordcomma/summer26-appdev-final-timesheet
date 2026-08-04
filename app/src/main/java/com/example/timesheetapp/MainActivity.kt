@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.em
+import androidx.lifecycle.ViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -229,8 +230,8 @@ fun NowScreen(
     onSetLocation: () -> Unit
 ){
     val nowViewModel: NowViewModel = viewModel()
-    val isClockedIn by nowViewModel.isClockedIn.collectAsState()
-    val clockInTime by nowViewModel.clockInTime.collectAsState()
+//    val isClockedIn by nowViewModel.isClockedIn.collectAsState()
+//    val clockInTime by nowViewModel.clockInTime.collectAsState()
 
     Column(
         modifier = modifier
@@ -243,8 +244,8 @@ fun NowScreen(
         Row( modifier = modifier.weight(1f)) {
             ClockInStatus(
                 modifier = modifier,
-                isWorking = isClockedIn,
-                startTime = if(isClockedIn) "Clocked in at: $clockInTime" else "Clocked Out"
+                isWorking = nowViewModel.isClockedIn,
+                startTime = if(nowViewModel.isClockedIn) "Clocked in at: ${nowViewModel.clockInTime!!.hour}:${nowViewModel.clockInTime!!.minute}" else "Go to work to clock in"
             )
         }
         Row(
@@ -396,31 +397,8 @@ fun AddressSearch(
         ) {
             Button(
                 onClick = {
-                    // this if statement comes from an amalgamation of the channels Reso Coder, Dr. Parag Shukla, and Kotlin with Compose youtube videos
-                    if (ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        ) != PackageManager.PERMISSION_GRANTED
-                    ) {
-                        (context as? ComponentActivity)?.let { activity ->
-                            ActivityCompat.requestPermissions(
-                                activity,
-                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                                1001
-                            )
-                        }
-                    } else {
-                        viewModel.getCurrentLocation { latitude, longitude ->
-                            selectedLocation = Pair(
-                                String.format(Locale.US, "%.6f", latitude),
-                                String.format(Locale.US, "%.6f", longitude)
-                            )
-                            viewModel.setSelectedLocation(latitude, longitude)
-                            text = "Current Location"
-                            showDropdown = false
-                            viewModel.clearResults()
-                        }
-                    }
+                    viewModel.updateWorkLocation()
+                    viewModel.clearResults()
                 },
                 modifier = Modifier
                     .height(56.dp)
@@ -450,7 +428,6 @@ fun AddressSearch(
                 )
             OutlinedButton(
                 onClick = {
-                    selectedLocation = null
                     viewModel.clearSelectedLocation()
                     text = ""
                 },
