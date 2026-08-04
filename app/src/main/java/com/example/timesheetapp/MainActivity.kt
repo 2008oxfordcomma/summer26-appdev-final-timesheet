@@ -51,6 +51,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.Manifest
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.em
@@ -136,10 +138,17 @@ fun NowScreen(
         Row( modifier = modifier.weight(1f)) {
             ClockInStatus(modifier = modifier)
         }
-        Row(
-            modifier = modifier.weight(1f),
+        Row (
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
+            Text("Select Work Location", style = MaterialTheme.typography.titleLarge)
+        }
+        Row(
+            modifier = modifier.weight(1.5f),
+            horizontalArrangement = Arrangement.Center
+        ) {
+
             AddressSearch()
         }
     }
@@ -213,7 +222,11 @@ fun AddressSearch() {
     Column (modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         selectedLocation?.let { (lat, lon) ->
             Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp).fillMaxWidth(),
+
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         text = "Selected Location:",
                         style = MaterialTheme.typography.titleMedium
@@ -285,6 +298,19 @@ fun AddressSearch() {
                 placeholder = { Text("Enter address") },
                 modifier = Modifier.weight(1f)
             )
+            OutlinedButton(
+                onClick = {
+                    selectedLocation = null
+                    viewModel.clearSelectedLocation()
+                    text = ""
+                },
+                modifier = Modifier
+                    .height(50.dp)
+                    .width(50.dp)
+                    .padding(top = 0.dp),
+            ) {
+                Text("X", textAlign = TextAlign.Center)
+            }
         }
         
         if (showDropdown && results.isNotEmpty()) {
