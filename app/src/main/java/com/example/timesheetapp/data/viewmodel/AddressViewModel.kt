@@ -108,7 +108,7 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
         val targetLatitude = selectedLatitude ?: return
         val targetLongitude = selectedLongitude ?: return
 
-        val threshold = 0.001
+        val threshold = 0.005
         val latitudeDifference = abs(currentLatitude - targetLatitude)
         val longitudeDifference = abs(currentLongitude - targetLongitude)
 
