@@ -1,6 +1,10 @@
 package com.example.timesheetapp.data.remote
 
 // pulled straight from the API page
+/* references 
+* https://nominatim.org/release-docs/develop/library/Getting-Started/
+* https://nominatim.org/release-docs/develop/api/Overview/
+*/
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
