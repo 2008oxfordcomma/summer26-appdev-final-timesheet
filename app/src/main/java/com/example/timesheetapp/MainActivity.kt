@@ -245,8 +245,11 @@ fun HistoryCard(
                 Text(modifier = modifier, text = totalText, fontSize = fontSize)
             }
         }
-        Button(modifier = modifier, onClick = onDel, enabled = !isHeader){
-            Text(modifier = modifier.align(alignment = Alignment.CenterVertically), text =  delTxt, fontSize = fontSize, textAlign = TextAlign.Center)
+        Button(modifier = modifier,
+            onClick = {onDel()},
+            enabled = !isHeader){
+            Text(modifier = modifier.align(alignment = Alignment.CenterVertically), text =  delTxt, fontSize = fontSize, textAlign = TextAlign.Center
+        )
         }
     }
 }
