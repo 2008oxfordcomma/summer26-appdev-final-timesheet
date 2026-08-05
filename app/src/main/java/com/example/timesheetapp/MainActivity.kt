@@ -344,9 +344,9 @@ fun ClockInStatus(
 fun AddressSearch(
     modifier: Modifier = Modifier,
     @DrawableRes leadingIcon: Int,
+    viewModel: AddressViewModel = viewModel(),
+    nowViewModel: NowViewModel = viewModel()
 ) {
-    val viewModel: AddressViewModel = viewModel()
-    val nowViewModel: NowViewModel = viewModel()
     val context = LocalContext.current
     val results by viewModel.searchResults.collectAsState()
     val isNearLocation by viewModel.isNearLocation.collectAsState()
@@ -358,7 +358,7 @@ fun AddressSearch(
     var text by remember { mutableStateOf("") }
     var debounceJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
-    var selectedLocation by remember {mutableStateOf<Pair<String, String>?>(null)}
+    var selectedLocation = viewModel.workLocation
     var showDropdown by remember {mutableStateOf(false)}
 
     Column (modifier = Modifier
@@ -455,10 +455,10 @@ fun AddressSearch(
 
                                     val latitude = place.lat.toDouble()
                                     val longitude = place.lon.toDouble()
-                                    selectedLocation = Pair(
-                                        String.format(Locale.US, "%.6f", latitude),
-                                        String.format(Locale.US, "%.6f", longitude)
-                                    )
+//                                    selectedLocation = Pair(
+//                                        String.format(Locale.US, "%.6f", latitude),
+//                                        String.format(Locale.US, "%.6f", longitude)
+//                                    )
                                     viewModel.setSelectedLocation(latitude, longitude)
                                     // I was trying to get this to print to the console when clicked, but it's not working
                                     println("$latitude, $longitude")

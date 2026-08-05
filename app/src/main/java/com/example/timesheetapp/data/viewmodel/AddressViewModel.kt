@@ -42,8 +42,7 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
     val isNearLocation: StateFlow<Boolean> = _isNearLocation
 
     private val _currentLocation = MutableStateFlow<Pair<Double, Double>?>(null)
-    var workLocation by mutableStateOf(Pair(0.0, 0.0))
-    var selectedLocation by mutableStateOf<Pair<String, String>?>(null)
+    var workLocation by mutableStateOf<Pair<Double, Double>?>(null)
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
     private var isPolling = false
@@ -70,7 +69,7 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
             Log.d(this.toString(), "Creating in new file: ${workLocationF.name}")
         }
 
-        Log.d(this.toString(), "Opening File ${workLocationF.name}. Saved Contents: ${workLocation.first},${workLocation.second}")
+        Log.d(this.toString(), "Opening File ${workLocationF.name}. Saved Contents: ${workLocation?.first},${workLocation?.second}")
     }
 
     fun searchAddress(query: String) {
@@ -97,11 +96,14 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
         val fileOut: FileOutputStream = FileOutputStream(workLocationF)
         val objStreamOut: ObjectOutputStream = ObjectOutputStream(fileOut)
         getCurrentLocation()
+        val lat: Double = selectedLatitude!!
+        val long: Double = selectedLongitude!!
+        workLocation = Pair(lat, long)
         objStreamOut.writeObject(workLocation)
 
         fileOut.close()
         objStreamOut.close()
-        Log.d(this.toString(), "Saving Work Location, Lat: ${workLocation.first} Long: ${workLocation.second}")
+        Log.d(this.toString(), "Saving Work Location, Lat: ${workLocation?.first} Long: ${workLocation?.second}")
     }
     fun clearResults() {
         _searchResults.value = emptyList()
@@ -109,6 +111,7 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
     }
 
     fun setSelectedLocation(latitude: Double, longitude: Double) {
+        workLocation = Pair(latitude, longitude)
         selectedLatitude = latitude
         selectedLongitude = longitude
         _isNearLocation.value = false
@@ -170,7 +173,8 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
     }
 
     // amalgamation of Reso Coder, Dr. Parag Shukla, and Kotlin with Compose youtube videos
-    fun getCurrentLocation(onLocationResult: (Double, Double) -> Unit) {
+    fun getCurrentLocation(onLocationResult: (Double, Double) -> Unit){
+
         if (ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -187,7 +191,9 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
             if (location != null) {
                 val latitude = location.latitude
                 val longitude = location.longitude
-                this.workLocation = Pair(latitude, longitude)
+                selectedLatitude = location.latitude
+                selectedLongitude = location.longitude
+                Log.d(this.toString(), "Current| Lat: $selectedLatitude Long: $selectedLongitude")
                 Log.d("AddressViewModel", "Location: $latitude, $longitude")
                 onLocationResult(latitude, longitude)
             } else {
@@ -200,4 +206,3 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
         }
     }
 }
-
