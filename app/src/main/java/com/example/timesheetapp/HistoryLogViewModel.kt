@@ -1,9 +1,12 @@
 package com.example.timesheetapp
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.AndroidViewModel
 import java.time.LocalDate
 import java.io.File
@@ -17,7 +20,7 @@ import java.time.LocalTime
 class HistoryLogViewModel(app: Application): AndroidViewModel(app) {
 
     private val file: File = File(app.filesDir,"log.bin")
-//    TODO fix this by not reassigning it
+    //    TODO fix this by not reassigning it
     var historyLog by mutableStateOf<MutableList<Work>>(mutableListOf<Work>())
 
     init{
@@ -62,16 +65,16 @@ class HistoryLogViewModel(app: Application): AndroidViewModel(app) {
         println(historyLog)
     }
 
-    fun getLog(): List<Work> {
+    fun getLog(): SnapshotStateList<Work> {
         val backLogDate = LocalDate.now().minusDays(14)
-        val returnList = mutableListOf<Work>()
+        val returnList = mutableStateListOf<Work>()
         var indx: Int = historyLog.size-1
         while(indx > 0 && (backLogDate.isBefore(historyLog[indx].date) || backLogDate.isEqual(historyLog[indx].date))){
             returnList.add(historyLog[indx])
             indx--
         }
 
-        return returnList.toList()
+        return returnList
     }
 
 }

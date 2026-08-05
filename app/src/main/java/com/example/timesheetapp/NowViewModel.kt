@@ -50,7 +50,10 @@ class NowViewModel(app: Application): AndroidViewModel(app) {
             try{
                 fileIn = FileInputStream(file)
                 objStreamIn = ObjectInputStream(fileIn)
-                return objStreamIn.readObject()
+                val rtn = objStreamIn.readObject()
+                fileIn.close()
+                objStreamIn.close()
+                return rtn
             } catch(EOF: java.io.EOFException){
                 Log.e(this.toString(),  "Error in loading file: ${file.name}")
             }
@@ -93,7 +96,7 @@ class NowViewModel(app: Application): AndroidViewModel(app) {
         saveData(clockInF, clockInTime)
     }
 
-    fun getHistory(): List<Work> {
-        return historyViewModel.getLog()
-    }
+//    fun getHistory(): List<Work> {
+////        return historyViewModel.getLog()
+//    }
 }

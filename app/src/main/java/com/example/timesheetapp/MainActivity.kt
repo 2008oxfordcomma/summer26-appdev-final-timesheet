@@ -30,7 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+//import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
@@ -50,14 +50,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.Manifest
+import android.graphics.Paint
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -110,7 +116,7 @@ fun MainScreen(
         modifier = modifier.fillMaxSize()
     ){
         if (showHistory) {
-            HistoryScreen(modifier = modifier)
+            HistoryScreen(modifier = modifier.padding(3.dp).fillMaxHeight(.85f))
         } else {
             NowScreen(
                 modifier = modifier,
@@ -132,7 +138,7 @@ fun MainScreen(
                     .fillMaxHeight(),
                 shape = RectangleShape
             ) {
-                Text("Now")
+                Text("Now", fontSize = 6.em)
             }
             Button(
                 onClick = { showHistory = true },
@@ -141,7 +147,7 @@ fun MainScreen(
                     .padding(start = 2.dp)
                     .fillMaxHeight(),
                 shape = RectangleShape) {
-                Text("History")
+                Text("History", fontSize = 6.em)
             }
         }
     }
@@ -154,7 +160,7 @@ fun HistoryScreen(
 ) {
     LazyColumn(modifier = modifier
         .fillMaxSize()
-        .background(color = Color.Cyan)
+        .padding(start = 3.dp, end = 3.dp)
     ) {
         item{
             HistoryCard()
@@ -163,14 +169,14 @@ fun HistoryScreen(
         for(work in histData){
             item{
                 HistoryCard(
-                    modifier = modifier,
-                    dateText = work.date.toString(),
+                    dateText = "${work.date.month.toString().lowercase().replaceFirstChar{it.uppercase()}} ${work.date.dayOfMonth}",
                     clockInText = (work.clockIn.hour.toString() + ":" + work.clockIn.minute.toString()),
                     clockOutText = (work.clockOut.hour.toString() + ":" + work.clockOut.minute.toString()),
-                    totalText = work.total.toString(),
-                    delTxt = "x",
+                    totalText = "%.2f".format(work.total),
+                    delTxt = "X",
                     isHeader = false,
-                    onDel = { histVM.remove(work) }
+                    onDel = { histVM.remove(work)},
+                    viewModel = histVM
                 )
             }
         }
@@ -186,40 +192,61 @@ fun HistoryCard(
     totalText:String = "Total",
     delTxt:String = "",
     isHeader: Boolean = true,
-    onDel: () -> Unit = {}
+    onDel: () -> Unit = {Log.v(dateText, "REMOVING | Clock In: $clockInText Clock Out: $clockOutText Total Text: $totalText")},
+    viewModel: HistoryLogViewModel = viewModel()
 ){
     Row(modifier = modifier
-        .height(60.dp)
-        .background(color = Color.Yellow)){
-        val fontSize = 4.em
+        .height(90.dp)
+        .padding(bottom = 15.dp)
+        .background(color = Color.LightGray),
+        verticalAlignment = Alignment.CenterVertically
+    )
+    {
+        val fontSize = 4.5.em
         Row(
             modifier = modifier
                 .fillMaxWidth(0.9f)
-                .background(color = Color.Red)
+                .fillMaxHeight()
         ){
             Column(modifier = modifier
-                .weight(1.0f)
-                .fillMaxHeight()) {
+                .weight(2f)
+                .fillMaxHeight()
+                .background(color = Color.Gray),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(modifier = modifier, text = dateText, fontSize = fontSize)
             }
             Column(modifier = modifier
                 .weight(1.0f)
-                .fillMaxHeight()) {
-                Text(modifier = modifier, text = clockInText, fontSize = fontSize)
+                .fillMaxHeight()
+                .background(color = Color.LightGray),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(modifier = modifier, text = clockInText, fontSize = fontSize,)
             }
             Column(modifier = modifier
                 .weight(1.0f)
-                .fillMaxHeight()) {
+                .fillMaxHeight()
+                .background(color = Color.Gray),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(modifier = modifier, text = clockOutText, fontSize = fontSize)
             }
             Column(modifier = modifier
                 .weight(1.0f)
-                .fillMaxHeight()) {
+                .fillMaxHeight()
+                .background(color = Color.LightGray),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                 Text(modifier = modifier, text = totalText, fontSize = fontSize)
             }
         }
         Button(modifier = modifier, onClick = onDel, enabled = !isHeader){
-            Text(modifier = modifier, text =  delTxt, fontSize = fontSize)
+            Text(modifier = modifier.align(alignment = Alignment.CenterVertically), text =  delTxt, fontSize = fontSize, textAlign = TextAlign.Center)
         }
     }
 }
