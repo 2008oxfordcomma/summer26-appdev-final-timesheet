@@ -93,12 +93,14 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
     }
 
     fun updateWorkLocation(){
+        getCurrentLocation()
+
+
+        val lat: Double = selectedLatitude ?: return
+        val long: Double = selectedLongitude ?: return
+        workLocation = Pair(lat, long)
         val fileOut: FileOutputStream = FileOutputStream(workLocationF)
         val objStreamOut: ObjectOutputStream = ObjectOutputStream(fileOut)
-        getCurrentLocation()
-        val lat: Double = selectedLatitude!!
-        val long: Double = selectedLongitude!!
-        workLocation = Pair(lat, long)
         objStreamOut.writeObject(workLocation)
 
         fileOut.close()
