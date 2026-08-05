@@ -43,7 +43,7 @@ class NowViewModel(app: Application): AndroidViewModel(app) {
     }
 
 
-    fun pullData(file: File): Any{
+    fun pullData(file: File): Any?{
         if(file.exists()){
             val fileIn: FileInputStream
             val objStreamIn: ObjectInputStream
@@ -62,6 +62,15 @@ class NowViewModel(app: Application): AndroidViewModel(app) {
         return Unit
     }
 
+    fun saveData(file: File, obj: Any?){
+        val fileOut: FileOutputStream = FileOutputStream(file)
+        val objStreamOut: ObjectOutputStream = ObjectOutputStream(fileOut)
+        objStreamOut.writeObject(obj)
+        Log.v(this.toString(), "Saving $obj to ${file.name}")
+        fileOut.close()
+        objStreamOut.close()
+    }
+
     fun updateLocationStatus(isNear: Boolean) {
         if (isNear && !isClockedIn) clockIn()
         else if (!isNear && isClockedIn) clockOut()
@@ -70,12 +79,18 @@ class NowViewModel(app: Application): AndroidViewModel(app) {
     private fun clockIn() {
         isClockedIn = true
         clockInTime = LocalTime.now()
+        saveData(file = isClockInF, isClockedIn)
+        saveData(clockInF, clockInTime)
     }
 
     private fun clockOut() {
         isClockedIn = false
         val clocked = clockInTime ?: throw Error("TRIED CLOCKING OUT WHILE NEVER CLOCKED IN!!!")
         historyViewModel.add(clocked)
+        isClockedIn = false
+        clockInTime = null
+        saveData(isClockInF, isClockedIn)
+        saveData(clockInF, clockInTime)
     }
 
     fun getHistory(): List<Work> {

@@ -397,7 +397,7 @@ fun AddressSearch(
         ) {
             Button(
                 onClick = {
-                    viewModel.updateWorkLocation()
+                    viewModel.updateWorkLocationToCurrent()
                     viewModel.clearResults()
                 },
                 modifier = Modifier
@@ -464,6 +464,7 @@ fun AddressSearch(
                                     println("$latitude, $longitude")
                                     showDropdown = false
                                     viewModel.clearResults()
+                                    text = ""
                                 }
                                 .padding(16.dp)
                         )

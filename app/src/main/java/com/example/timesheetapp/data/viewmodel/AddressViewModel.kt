@@ -58,6 +58,10 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
                 fileIn = FileInputStream(workLocationF)
                 objStreamIn = ObjectInputStream(fileIn)
                 workLocation = objStreamIn.readObject() as Pair<Double, Double>
+                if(workLocation != null){
+                    startLocationPolling()
+                }
+                Log.v(this.toString(), "Pulling Data From Storage | Work Location ${workLocation?.first} ${workLocation?.second}")
                 fileIn.close()
                 objStreamIn.close()
 
@@ -92,19 +96,33 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
         }
     }
 
-    fun updateWorkLocation(){
+
+
+
+    fun saveWorkLocation(){
         val fileOut: FileOutputStream = FileOutputStream(workLocationF)
         val objStreamOut: ObjectOutputStream = ObjectOutputStream(fileOut)
-        getCurrentLocation()
-        val lat: Double = selectedLatitude!!
-        val long: Double = selectedLongitude!!
-        workLocation = Pair(lat, long)
         objStreamOut.writeObject(workLocation)
-
         fileOut.close()
         objStreamOut.close()
-        Log.d(this.toString(), "Saving Work Location, Lat: ${workLocation?.first} Long: ${workLocation?.second}")
     }
+
+
+    fun updateWorkLocationToCurrent(){
+        getCurrentLocation { latitude, longitude ->
+            val newLocation = Pair(latitude, longitude)
+            _currentLocation.value = newLocation
+            workLocation = newLocation
+            }
+        workLocation = Pair(_currentLocation.value!!.first, _currentLocation.value!!.second)
+        saveWorkLocation()
+        Log.v("AddressViewModel:updateWorkLocationToCurrent", "New Work Location: ${workLocation!!.first}, ${workLocation!!.second}")
+        checkIfNearLocation(_currentLocation.value!!.first, _currentLocation.value!!.second)
+        if(isPolling == false){
+            startLocationPolling()
+        }
+    }
+
     fun clearResults() {
         _searchResults.value = emptyList()
         _error.value = null
@@ -112,10 +130,17 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
 
     fun setSelectedLocation(latitude: Double, longitude: Double) {
         workLocation = Pair(latitude, longitude)
+        saveWorkLocation()
         selectedLatitude = latitude
         selectedLongitude = longitude
-        _isNearLocation.value = false
-        startLocationPolling()
+//        _isNearLocation.value = false
+        getCurrentLocation { long, lat ->
+            _currentLocation.value = Pair(long, lat)
+        }
+        checkIfNearLocation(_currentLocation.value!!.first, _currentLocation.value!!.second)
+        if(isPolling == false){
+            startLocationPolling()
+        }
     }
 
     fun clearSelectedLocation() {
@@ -148,14 +173,20 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
     }
 
     private fun checkIfNearLocation(currentLatitude: Double, currentLongitude: Double) {
-        val targetLatitude = selectedLatitude ?: return
-        val targetLongitude = selectedLongitude ?: return
 
+        if(workLocation == null){
+            Log.e(this.toString(), "Cannot pull location because workLocation is null")
+            this.stopPolling()
+            return
+        }
+        val targetLatitude = workLocation?.first
+        val targetLongitude = workLocation?.second
         val threshold = 0.005
-        val latitudeDifference = abs(currentLatitude - targetLatitude)
-        val longitudeDifference = abs(currentLongitude - targetLongitude)
+        val latitudeDifference = abs(currentLatitude - targetLatitude!!)
+        val longitudeDifference = abs(currentLongitude - targetLongitude!!)
 
         val isNear = latitudeDifference < threshold && longitudeDifference < threshold
+        Log.v(this.toString(), "isNear: $isNear currentLatitude: ($currentLatitude, $currentLongitude) WorkLocation: (${workLocation?.first}, ${workLocation?.second})")
         _isNearLocation.value = isNear
     }
 
@@ -168,9 +199,6 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
         stopPolling()
     }
 
-    private fun getCurrentLocation(){
-        getCurrentLocation(onLocationResult = {a: Double, b: Double -> {}})
-    }
 
     // amalgamation of Reso Coder, Dr. Parag Shukla, and Kotlin with Compose youtube videos
     fun getCurrentLocation(onLocationResult: (Double, Double) -> Unit){
@@ -191,10 +219,7 @@ class AddressViewModel(application: android.app.Application) : AndroidViewModel(
             if (location != null) {
                 val latitude = location.latitude
                 val longitude = location.longitude
-                selectedLatitude = location.latitude
-                selectedLongitude = location.longitude
-                Log.d(this.toString(), "Current| Lat: $selectedLatitude Long: $selectedLongitude")
-                Log.d("AddressViewModel", "Location: $latitude, $longitude")
+                Log.d("AddressViewModel", "Live Location: $latitude, $longitude")
                 onLocationResult(latitude, longitude)
             } else {
                 Log.e("AddressViewModel", "Location is null")
